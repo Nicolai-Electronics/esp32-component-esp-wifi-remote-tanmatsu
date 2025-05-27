@@ -1,0 +1,9 @@
+dependencies:
+  espressif/eppp_link:
+    version: '>=0.1'
+  idf:
+    version: '>=5.3'
+description: Utility wrapper for esp_wifi functionality on remote targets with modifications for Tanmatsu
+repository: git://github.com/Nicolai-Electronics/esp32-component-esp-wifi-remote-tanmatsu.git
+url: https://github.com/Nicolai-Electronics/esp32-component-esp-wifi-remote-tanmatsu
+version: 0.5.2
