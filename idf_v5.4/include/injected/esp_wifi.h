@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -989,6 +989,7 @@ esp_err_t esp_wifi_get_promiscuous_ctrl_filter(wifi_promiscuous_filter_t *filter
   *    - ESP_ERR_WIFI_MODE: invalid mode
   *    - ESP_ERR_WIFI_PASSWORD: invalid password
   *    - ESP_ERR_WIFI_NVS: WiFi internal NVS error
+  *    - ESP_ERR_WIFI_STATE: WiFi still connecting when invoke esp_wifi_set_config
   *    - others: refer to the error code in esp_err.h
   */
 esp_err_t esp_wifi_set_config(wifi_interface_t interface, wifi_config_t *conf);
@@ -1080,6 +1081,9 @@ typedef void (*esp_vendor_ie_cb_t)(void *ctx, wifi_vendor_ie_type_t type, const 
   * @param     idx  Index to set or clear. Each IE type can be associated with up to two elements (indices 0 & 1).
   * @param     vnd_ie Pointer to vendor specific element data. First 6 bytes should be a header with fields matching vendor_ie_data_t.
   *            If enable is false, this argument is ignored and can be NULL. Data does not need to remain valid after the function returns.
+  *
+  * @attention If user set the same vendor ie twice, the second set will fail and return ESP_ERR_INVALID_ARG.
+  *            Please clear the vendor ie before setting again.
   *
   * @return
   *    - ESP_OK: succeed
@@ -1789,6 +1793,29 @@ esp_err_t esp_wifi_set_bandwidths(wifi_interface_t ifx, wifi_bandwidths_t* bw);
   */
 esp_err_t esp_wifi_get_bandwidths(wifi_interface_t ifx, wifi_bandwidths_t *bw);
 
+/**
+  * @brief      Send action frame on target channel
+  *
+  * @param    req   action tx request structure containing relevant fields
+  *
+  * @return
+  *    - ESP_OK: succeed
+  *    - ESP_ERR_NO_MEM: failed to allocate memory
+  *    - ESP_FAIL: failed to send frame
+  */
+esp_err_t esp_wifi_action_tx_req(wifi_action_tx_req_t *req);
+
+/**
+  * @brief      Remain on the target channel for required duration
+  *
+  * @param    req  roc request structure containing relevant fields
+  *
+  * @return
+  *    - ESP_OK: succeed
+  *    - ESP_ERR_NO_MEM: failed to allocate memory
+  *    - ESP_FAIL: failed to perform roc operation
+  */
+esp_err_t esp_wifi_remain_on_channel(wifi_roc_req_t * req);
 #ifdef __cplusplus
 }
 #endif

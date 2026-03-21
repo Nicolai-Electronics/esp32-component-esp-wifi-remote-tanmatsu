@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+# SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
 # SPDX-License-Identifier: Apache-2.0
 import argparse
 import glob
@@ -192,7 +192,7 @@ def generate_kconfig_wifi_caps(idf_path, idf_ver_dir, component_path):
     with open(kconfig, 'w') as slave_caps, open(slave_select, 'w') as slave:
         slave_caps.write(f'# {AUTO_GENERATED}\n')
         slave.write(f'# {AUTO_GENERATED}\n')
-        slave.write('    choice SLAVE_IDF_TARGET\n')
+        slave.write(f'    choice SLAVE_IDF_TARGET {KCONFIG_MULTIPLE_DEF}\n')
         slave.write('    prompt "choose slave target"\n')
         slave.write('    default SLAVE_IDF_TARGET_ESP32C6 if IDF_TARGET_ESP32P4  # To support common use-cases\n')
         slave.write('    default SLAVE_IDF_TARGET_ESP32\n\n')
@@ -234,7 +234,7 @@ def generate_kconfig_wifi_caps(idf_path, idf_ver_dir, component_path):
                 slave_caps.write(f'endif # {slave_target.upper()}\n')
 
                 slave_config_name = 'SLAVE_IDF_TARGET_' + slave_target.upper()
-                slave.write(f'    config {slave_config_name}\n')
+                slave.write(f'    config {slave_config_name} {KCONFIG_MULTIPLE_DEF}\n')
                 slave.write(f'        bool "{slave_target}"\n')
 
         slave.write('    endchoice\n')
@@ -248,10 +248,12 @@ def generate_remote_wifi_api(function_prototypes, idf_ver_dir, component_path):
     with open(header, 'w') as f:
         f.write(COPYRIGHT_HEADER)
         f.write('#pragma once\n')
+        f.write('\n#ifdef __cplusplus\nextern "C" {\n#endif\n\n')
         for func_name, args in function_prototypes.items():
             params, _ = get_args(args[1])
             remote_func_name = NAMESPACE.sub('esp_wifi_remote', func_name)
             f.write(f'{args[0]} {remote_func_name}({params});\n')
+        f.write('\n#ifdef __cplusplus\n}\n#endif\n')
     with open(wifi_source, 'w') as wifi, open(remote_source, 'w') as remote:
         wifi.write(COPYRIGHT_HEADER)
         wifi.write('#include "esp_wifi.h"\n')
@@ -287,6 +289,7 @@ def generate_remote_eap_api(function_prototypes, idf_ver_dir, component_path):
         f.write(COPYRIGHT_HEADER)
         f.write('#pragma once\n')
         f.write('#include "esp_eap_client.h"\n')
+        f.write('\n#ifdef __cplusplus\nextern "C" {\n#endif\n\n')
         for func_name, args in function_prototypes.items():
             params, _ = get_args(args[1])
             # Handle esp_wifi functions differently - map them to esp_wifi_remote
@@ -295,6 +298,7 @@ def generate_remote_eap_api(function_prototypes, idf_ver_dir, component_path):
             else:
                 remote_func_name = func_name.replace('esp_eap_client', 'esp_eap_client_remote')
             f.write(f'{args[0]} {remote_func_name}({params});\n')
+        f.write('\n#ifdef __cplusplus\n}\n#endif\n')
     with open(eap_source, 'w') as eap, open(remote_source, 'w') as remote:
         eap.write(COPYRIGHT_HEADER)
         eap.write('#include "esp_eap_client.h"\n')
@@ -551,6 +555,10 @@ def generate_kconfig(idf_path, idf_ver_dir, component_path):
                 # Adjust indentation relative to the captured initial indent
                 if len(modified_line) > initial_indent and modified_line[:initial_indent].isspace():
                     modified_line = modified_line[initial_indent:]
+                # Add multiple-definition pragma for wifi-remote configs (duplicated in managed_components)
+                if KCONFIG_MULTIPLE_DEF not in modified_line and re.match(
+                        r'^\s*(config|choice)\s+(WIFI_RMT_|SLAVE_)[A-Z0-9_]+', modified_line.strip()):
+                    modified_line = modified_line.rstrip('\n') + f' {KCONFIG_MULTIPLE_DEF}\n'
                 outfile.write(modified_line)
 
             # When an ESP_WIFI_ENABLED condition is encountered, update the nesting threshold
